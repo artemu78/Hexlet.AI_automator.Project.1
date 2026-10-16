@@ -102,7 +102,11 @@ export default function ContactFormDialog({ open, onClose }) {
               </p>
             ) : null}
 
-            <button type="submit" className="button dialog__submit">
+            <button
+              type="submit"
+              className="button dialog__submit"
+              onClick={() => window.ym?.(113655208, 'reachGoal', 'contact_form_submit_click')}
+            >
               Отправить
             </button>
           </form>

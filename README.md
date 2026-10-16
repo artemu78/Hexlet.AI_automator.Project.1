@@ -11,6 +11,16 @@ npm run dev
 
 To create a production build, run `npm run build`.
 
+## Yandex Metrica
+
+Counter `113655208` tracks clicks on the contact form's “Отправить” button with
+the JavaScript event goal `contact_form_submit_click`. In this counter's settings,
+create a goal of type “JavaScript event” with that exact identifier.
+
+The goal records each button click, including clicks with empty fields. It does
+not confirm delivery: the form currently only displays a local success message.
+The goal call does not include message text or contact details.
+
 ## Publish on GitHub Pages
 
 1. Push this project to a GitHub repository on the `main` branch.

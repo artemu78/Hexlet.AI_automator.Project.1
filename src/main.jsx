@@ -19,3 +19,9 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 );
+
+// With defer enabled, send the initial SPA page view explicitly, once per load.
+window.ym?.(113655208, 'hit', window.location.href, {
+  title: document.title,
+  referer: document.referrer,
+});

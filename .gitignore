@@ -1,3 +1,12 @@
 node_modules/
 dist/
 .DS_Store
+.env*
+!.env.example
+**/__pycache__/
+.venv/
+infra/.terraform/
+*.tfstate*
+*.tfvars
+*.tfplan
+infra/function.zip

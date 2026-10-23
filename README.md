@@ -37,3 +37,14 @@ The workflow builds the app and deploys the `dist` directory. The Vite base path
 ## Contact submissions
 
 Set `VITE_CONTACT_API_URL` in `.env.local` for development and in the GitHub repository Actions variables for Pages builds. Without it the form reports that it is unavailable. See [deployment and verification](docs/contact-api.md) for Terraform, the API contract, and acceptance checks.
+
+## Deploy infrastructure to Yandex Cloud
+
+Copy `infra/deploy.example.json` to `infra/deploy.local.json` and set your cloud ID, folder ID, and path to the authorized service-account JSON key. The local configuration and key are excluded from Git.
+
+```sh
+npm run deploy -- --plan  # preview changes
+npm run deploy           # initialize, validate, show plan and apply after confirmation
+```
+
+For unattended deployment use `npm run deploy -- --auto-approve`. The command prints the API URL after applying; set it as `VITE_CONTACT_API_URL` for the separate Pages build. Environment variables `YC_CLOUD_ID`, `YC_FOLDER_ID`, and `YC_SERVICE_ACCOUNT_KEY_FILE` override local configuration (`TF_VAR_cloud_id`/`TF_VAR_folder_id` take precedence over the YC IDs). Terraform must be installed and the service account must have deployment permissions. See [deployment details](docs/contact-api.md).

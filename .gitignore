@@ -10,3 +10,5 @@ infra/.terraform/
 *.tfvars
 *.tfplan
 infra/function.zip
+infra/deploy.local.json
+**/authorized_key.json

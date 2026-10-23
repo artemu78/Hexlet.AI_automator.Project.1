@@ -18,6 +18,8 @@ SPA на GitHub Pages отправляет JSON в API Gateway → приват�
 
 ## Terraform
 
+Для запуска одной командой заполните `infra/deploy.local.json` по образцу `infra/deploy.example.json`: cloud_id, folder_id и абсолютный путь service_account_key_file. Локальный файл исключён из Git. `npm run deploy -- --plan` проверяет план без создания ресурсов; `npm run deploy` выполняет init, fmt -check, validate и apply с подтверждением плана Terraform. Для автоматического применения: `npm run deploy -- --auto-approve`. Ключ передаётся провайдеру через окружение; YC_TOKEN удаляется из окружения дочернего процесса, чтобы не смешивать способы авторизации. После применения команда выводит URL API. Возможен также ручной запуск:
+
 Нужны Terraform >=1.5, доступ к Yandex Cloud и права для создания ресурсов, таблиц и IAM-привязок. Укажите облако и каталог своего проекта. Учётные данные передаются через стандартный `YC_TOKEN` (краткоживущий IAM-токен) или `YC_SERVICE_ACCOUNT_KEY_FILE`; не сохраняйте их в Git.
 
 ```sh

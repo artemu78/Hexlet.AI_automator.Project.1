@@ -1,6 +1,6 @@
 # Hexlet AI Automator — React SPA
 
-A minimal React single-page application that displays a “Hello, world!” page.
+A Russian-language, single-page fitness club concept with Lucide icons and fitness photo slots. All promotional buttons are decorative; “Написать нам” opens the original contact dialog.
 
 ## Run locally
 
@@ -10,6 +10,10 @@ npm run dev
 ```
 
 To create a production build, run `npm run build`.
+
+## Background video
+
+The fullscreen hero currently uses an Unsplash photo as its background. Photo URLs live in the `photos` object in `src/main.jsx`; replace them with your own local assets when ready. External photos need network access; a gradient background remains if they are unavailable. To add your video, place it at `public/club-background.mp4` and add `VITE_HERO_VIDEO=club-background.mp4` to `.env.local`, then restart the dev server or rebuild. The video plays muted, loops, and fills the hero. The photo remains as its poster and reduced-motion fallback.
 
 ## Yandex Metrica
 

@@ -64,3 +64,7 @@ Unit-тесты проверяют границы, политику дедупл
 7. В консоли схемы убедитесь: TTL есть только у `rate_limits`. После очистки просроченных записей лимита заявки остаются. Удаляйте тестовые заявки вручную.
 
 Источники: [интеграция функции и доверенный контекст](https://github.com/yandex-cloud/docs/blob/master/md-docs/api-gateway/concepts/extensions/cloud-functions.md), [таблицы Terraform и TTL](https://github.com/yandex-cloud/docs/blob/master/md-docs/terraform/resources/ydb_table.md), [YDB Python SDK](https://github.com/ydb-platform/ydb-python-sdk).
+
+## Ошибка discovery при первом развёртывании
+
+Если создание таблиц завершилось `failed to initialize table client` → `failed to discover database` → `Unavailable: Service unavailable`, это отказ discovery data-plane YDB, а не ошибка схемы таблицы. Статус базы RUNNING сам по себе не подтверждает доступность discovery. Не удаляйте базу или Terraform state. Повторите `npm run deploy`: уже созданные ресурсы останутся в state, Terraform продолжит создание недостающих. Если отказ повторяется, проверьте доступ к endpoint на порту 2135, доступность YDB и права сервисного аккаунта; не подменяйте эту диагностику бесконечными повторами apply.

@@ -1,14 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 
+import { normalizeContact, sendContact } from "./contact-api.js";
+
 export default function ContactFormDialog({ open, onClose }) {
   const [message, setMessage] = useState("");
   const [contacts, setContacts] = useState("");
   const [error, setError] = useState(null);
   const [sent, setSent] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [website, setWebsite] = useState("");
+  const attempt = useRef(null);
+  const busy = useRef(false);
   const firstFieldRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
+      if (busy.current) return undefined;
+      attempt.current = null;
+      setWebsite("");
       setMessage("");
       setContacts("");
       setError(null);
@@ -17,7 +26,7 @@ export default function ContactFormDialog({ open, onClose }) {
     }
 
     const onKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !busy.current) onClose();
     };
 
     document.addEventListener("keydown", onKeyDown);
@@ -33,19 +42,34 @@ export default function ContactFormDialog({ open, onClose }) {
 
   if (!open) return null;
 
-  const handleSubmit = (event) => {
+  const close = () => { if (!busy.current) onClose(); };
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!message.trim() || !contacts.trim()) {
-      setError("Заполните оба поля.");
-      return;
+    if (busy.current) return;
+    try {
+      const values = normalizeContact(message, contacts);
+      const fingerprint = JSON.stringify(values);
+      if (!attempt.current || attempt.current.fingerprint !== fingerprint) {
+        attempt.current = { fingerprint, id: crypto.randomUUID() };
+      }
+      busy.current = true;
+      setPending(true);
+      setError(null);
+      await sendContact(import.meta.env.VITE_CONTACT_API_URL, {
+        id: attempt.current.id, ...values, website,
+      });
+      setSent(true);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
-    setError(null);
-    setSent(true);
   };
 
   return (
     <div className="dialog">
-      <div className="dialog__overlay" aria-hidden="true" onClick={onClose} />
+      <div className="dialog__overlay" aria-hidden="true" onClick={close} />
       <div
         className="dialog__box"
         role="dialog"
@@ -54,9 +78,10 @@ export default function ContactFormDialog({ open, onClose }) {
       >
         <button
           type="button"
+          disabled={pending}
           className="dialog__close"
           aria-label="Закрыть"
-          onClick={onClose}
+          onClick={close}
         >
           ×
         </button>
@@ -71,23 +96,25 @@ export default function ContactFormDialog({ open, onClose }) {
             <span className="dialog__done-mark" aria-hidden="true">
               ✓
             </span>
-            <p>Сообщение отправлено. Спасибо!</p>
+            <p>Заявка принята</p>
             <button
               type="button"
               className="button button--ghost"
-              onClick={onClose}
+              onClick={close}
             >
               Закрыть
             </button>
           </div>
         ) : (
-          <form className="dialog__form" onSubmit={handleSubmit} noValidate>
+          <form aria-busy={pending} className="dialog__form" onSubmit={handleSubmit} noValidate>
             <label className="field" htmlFor="contact-message">
-              <span className="field__label">Сообщение</span>
+              <span className="field__label">Сообщение (до 1000 символов)</span>
               <textarea
                 id="contact-message"
                 ref={firstFieldRef}
                 name="message"
+                disabled={pending}
+                required
                 rows="3"
                 placeholder="Коротко о вашем вопросе"
                 value={message}
@@ -97,10 +124,12 @@ export default function ContactFormDialog({ open, onClose }) {
             </label>
 
             <label className="field" htmlFor="contact-contacts">
-              <span className="field__label">Контакты</span>
+              <span className="field__label">Контакты (до 100 символов)</span>
               <input
                 id="contact-contacts"
                 name="contacts"
+                disabled={pending}
+                required
                 type="text"
                 autoComplete="off"
                 placeholder="e-mail, телефон или @telegram"
@@ -110,6 +139,12 @@ export default function ContactFormDialog({ open, onClose }) {
               />
             </label>
 
+            <label className="contact-trap" aria-hidden="true">
+              Website
+              <input name="website" tabIndex={-1} autoComplete="off" value={website}
+                onChange={(event) => setWebsite(event.target.value)} />
+            </label>
+
             {error ? (
               <p className="dialog__error" role="alert">
                 {error}
@@ -117,13 +152,14 @@ export default function ContactFormDialog({ open, onClose }) {
             ) : null}
 
             <button
+              disabled={pending}
               type="submit"
               className="button dialog__submit"
               onClick={() =>
                 window.ym?.(113655208, "reachGoal", "contact_form_submit_click")
               }
             >
-              Отправить
+              {pending ? "Сохраняем…" : "Отправить"}
             </button>
           </form>
         )}

@@ -774,3 +774,12 @@ h2 em {
   background:
     radial-gradient(ellipse at 80% 15%, #63705b, transparent 65%), #1d2924;
 }
+
+.contact-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.button:disabled { opacity: .65; cursor: wait; }

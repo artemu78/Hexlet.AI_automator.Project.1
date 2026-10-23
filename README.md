@@ -22,7 +22,7 @@ the JavaScript event goal `contact_form_submit_click`. In this counter's setting
 create a goal of type “JavaScript event” with that exact identifier.
 
 The goal records each button click, including clicks with empty fields. It does
-not confirm delivery: the form currently only displays a local success message.
+not confirm delivery: delivery is confirmed separately by the API after saving to YDB.
 The goal call does not include message text or contact details.
 
 ## Publish on GitHub Pages
@@ -33,3 +33,7 @@ The goal call does not include message text or contact details.
 4. Open the published URL shown in the workflow run or under **Settings → Pages**.
 
 The workflow builds the app and deploys the `dist` directory. The Vite base path is set automatically from the repository name in GitHub Actions. If your default branch is not `main`, update the branch under `on.push.branches` in `.github/workflows/deploy.yml`.
+
+## Contact submissions
+
+Set `VITE_CONTACT_API_URL` in `.env.local` for development and in the GitHub repository Actions variables for Pages builds. Without it the form reports that it is unavailable. See [deployment and verification](docs/contact-api.md) for Terraform, the API contract, and acceptance checks.

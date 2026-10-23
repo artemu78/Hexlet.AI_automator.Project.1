@@ -1,32 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
 export default function ContactFormDialog({ open, onClose }) {
-  const [message, setMessage] = useState('');
-  const [contacts, setContacts] = useState('');
+  const [message, setMessage] = useState("");
+  const [contacts, setContacts] = useState("");
   const [error, setError] = useState(null);
   const [sent, setSent] = useState(false);
   const firstFieldRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
-      setMessage('');
-      setContacts('');
+      setMessage("");
+      setContacts("");
       setError(null);
       setSent(false);
       return undefined;
     }
 
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === "Escape") onClose();
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     firstFieldRef.current?.focus();
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
   }, [open, onClose]);
@@ -36,7 +36,7 @@ export default function ContactFormDialog({ open, onClose }) {
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!message.trim() || !contacts.trim()) {
-      setError('Заполните оба поля.');
+      setError("Заполните оба поля.");
       return;
     }
     setError(null);
@@ -46,8 +46,18 @@ export default function ContactFormDialog({ open, onClose }) {
   return (
     <div className="dialog">
       <div className="dialog__overlay" aria-hidden="true" onClick={onClose} />
-      <div className="dialog__box" role="dialog" aria-modal="true" aria-labelledby="contact-title">
-        <button type="button" className="dialog__close" aria-label="Закрыть" onClick={onClose}>
+      <div
+        className="dialog__box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contact-title"
+      >
+        <button
+          type="button"
+          className="dialog__close"
+          aria-label="Закрыть"
+          onClick={onClose}
+        >
           ×
         </button>
 
@@ -62,7 +72,11 @@ export default function ContactFormDialog({ open, onClose }) {
               ✓
             </span>
             <p>Сообщение отправлено. Спасибо!</p>
-            <button type="button" className="button button--ghost" onClick={onClose}>
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={onClose}
+            >
               Закрыть
             </button>
           </div>
@@ -78,7 +92,7 @@ export default function ContactFormDialog({ open, onClose }) {
                 placeholder="Коротко о вашем вопросе"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                aria-invalid={error ? 'true' : undefined}
+                aria-invalid={error ? "true" : undefined}
               />
             </label>
 
@@ -92,7 +106,7 @@ export default function ContactFormDialog({ open, onClose }) {
                 placeholder="e-mail, телефон или @telegram"
                 value={contacts}
                 onChange={(event) => setContacts(event.target.value)}
-                aria-invalid={error ? 'true' : undefined}
+                aria-invalid={error ? "true" : undefined}
               />
             </label>
 
@@ -105,7 +119,9 @@ export default function ContactFormDialog({ open, onClose }) {
             <button
               type="submit"
               className="button dialog__submit"
-              onClick={() => window.ym?.(113655208, 'reachGoal', 'contact_form_submit_click')}
+              onClick={() =>
+                window.ym?.(113655208, "reachGoal", "contact_form_submit_click")
+              }
             >
               Отправить
             </button>

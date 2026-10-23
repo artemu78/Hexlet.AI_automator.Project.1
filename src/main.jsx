@@ -1,7 +1,10 @@
 import React, { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ContactFormDialog from './ContactFormDialog';
+import { version } from '../package.json';
 import './styles.css';
+
+console.info(`App version: ${version}`);
 
 function App() {
   const [formOpen, setFormOpen] = useState(false);

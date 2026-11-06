@@ -67,6 +67,8 @@ async function main() {
     terraform('output', '-raw', 'contact_api_url');
     console.log('\nПубличный URL Telegram-функции (GET, параметр ?text=Hello):');
     terraform('output', '-raw', 'telegram_function_url');
+    console.log('\nURL агрегатов для VITE_DASHBOARD_API_URL:');
+    terraform('output', '-raw', 'dashboard_api_url');
     console.log();
   }
 }

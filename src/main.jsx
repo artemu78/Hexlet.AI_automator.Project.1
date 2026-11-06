@@ -12,6 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import ContactFormDialog from "./ContactFormDialog";
+import Dashboard from "./Dashboard";
 import { version } from "../package.json";
 import "./styles.css";
 
@@ -251,7 +252,7 @@ function App() {
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    {window.location.hash.startsWith('#/dashboard') ? <Dashboard /> : <App />}
   </StrictMode>,
 );
 

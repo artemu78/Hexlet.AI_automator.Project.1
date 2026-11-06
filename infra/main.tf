@@ -45,6 +45,19 @@ resource "yandex_ydb_table" "submissions" {
   }
   # Deliberately no TTL: accepted submissions are retained indefinitely.
 }
+resource "yandex_ydb_table" "error_logs" {
+  path              = "error_logs"
+  connection_string = yandex_ydb_database_serverless.contact.ydb_full_endpoint
+  primary_key       = ["id"]
+  dynamic "column" {
+    for_each = { id = "Utf8", occurred_at = "Timestamp", source = "Utf8", message = "Utf8", error_type = "Utf8", request_id = "Utf8", details = "Utf8" }
+    content {
+      name     = column.key
+      type     = column.value
+      not_null = contains(["id", "occurred_at", "source", "message"], column.key)
+    }
+  }
+}
 resource "yandex_ydb_table" "rate_limits" {
   path              = "rate_limits"
   connection_string = yandex_ydb_database_serverless.contact.ydb_full_endpoint
@@ -63,6 +76,19 @@ resource "yandex_ydb_table" "rate_limits" {
     unit            = "seconds"
   }
 }
+resource "yandex_ydb_table" "demo_sales" {
+  path              = "demo_sales"
+  connection_string = yandex_ydb_database_serverless.contact.ydb_full_endpoint
+  primary_key       = ["id"]
+  dynamic "column" {
+    for_each = { id = "Utf8", purchased_at = "Uint64", membership_type = "Utf8", amount_kopecks = "Uint64" }
+    content {
+      name     = column.key
+      type     = column.value
+      not_null = true
+    }
+  }
+}
 resource "random_password" "ip_hash" {
   length  = 64
   special = false
@@ -76,6 +102,10 @@ data "archive_file" "function" {
   source {
     content  = file("${path.module}/../backend/requirements.txt")
     filename = "requirements.txt"
+  }
+  source {
+    content  = file("${path.module}/../backend/dashboard.py")
+    filename = "dashboard.py"
   }
   output_path = "${path.module}/function.zip"
 }
@@ -124,3 +154,65 @@ resource "yandex_api_gateway" "contact" {
   depends_on = [yandex_function_iam_binding.invoke]
 }
 output "contact_api_url" { value = "https://${yandex_api_gateway.contact.domain}/submissions" }
+
+variable "dashboard_access_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+variable "metrica_oauth_token" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+variable "metrica_counter_id" {
+  type    = string
+  default = "113655208"
+}
+resource "yandex_function" "dashboard" {
+  name               = "${var.name}-dashboard"
+  runtime            = "python312"
+  entrypoint         = "dashboard.handler"
+  memory             = 256
+  execution_timeout  = 15
+  service_account_id = yandex_iam_service_account.function.id
+  user_hash          = data.archive_file.function.output_base64sha256
+  content { zip_filename = data.archive_file.function.output_path }
+  environment = {
+    YDB_ENDPOINT                 = "grpcs://${yandex_ydb_database_serverless.contact.ydb_api_endpoint}"
+    YDB_DATABASE                 = yandex_ydb_database_serverless.contact.database_path
+    ALLOWED_ORIGINS              = join(",", var.allowed_origins)
+    DASHBOARD_ACCESS_SECRET      = var.dashboard_access_secret
+    METRICA_OAUTH_TOKEN          = var.metrica_oauth_token
+    METRICA_COUNTER_ID           = var.metrica_counter_id
+    DASHBOARD_ALLOW_FAILURE_DEMO = "1"
+  }
+  depends_on = [yandex_ydb_table.demo_sales, yandex_ydb_database_iam_binding.writer]
+}
+resource "yandex_function_iam_binding" "dashboard_invoke" {
+  function_id = yandex_function.dashboard.id
+  role        = "functions.functionInvoker"
+  members     = ["serviceAccount:${yandex_iam_service_account.gateway.id}"]
+}
+resource "yandex_api_gateway" "dashboard" {
+  name = "${var.name}-dashboard"
+  spec = jsonencode({
+    openapi = "3.0.0"
+    info    = { title = "Fitness dashboard", version = "1.0.0" }
+    paths = {
+      "/dashboard" = {
+        for method in ["get", "options"] : method => {
+          operationId = "${method}Dashboard"
+          responses   = { "200" = { description = "Aggregates" } }
+          "x-yc-apigateway-integration" = {
+            type               = "cloud_functions"
+            function_id        = yandex_function.dashboard.id
+            service_account_id = yandex_iam_service_account.gateway.id
+          }
+        }
+      }
+    }
+  })
+  depends_on = [yandex_function_iam_binding.dashboard_invoke]
+}
+output "dashboard_api_url" { value = "https://${yandex_api_gateway.dashboard.domain}/dashboard" }

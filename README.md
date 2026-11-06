@@ -38,6 +38,10 @@ The workflow builds the app and deploys the `dist` directory. The Vite base path
 
 Set `VITE_CONTACT_API_URL` in `.env.local` for development and in the GitHub repository Actions variables for Pages builds. Without it the form reports that it is unavailable. See [deployment and verification](docs/contact-api.md) for Terraform, the API contract, and acceptance checks.
 
+## Fitness dashboard
+
+Open `/#/dashboard` locally or append `#/dashboard` to the GitHub Pages project URL. The default demonstration mode needs no cloud credentials. For connected sources, setup and deployment steps are in [the webinar guide](docs/dashboard-webinar.md).
+
 ## Deploy infrastructure to Yandex Cloud
 
 Copy `infra/deploy.example.json` to `infra/deploy.local.json` and set your cloud ID, folder ID, and path to the authorized service-account JSON key. The local configuration and key are excluded from Git.

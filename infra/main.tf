@@ -36,7 +36,7 @@ resource "yandex_ydb_table" "submissions" {
   connection_string = yandex_ydb_database_serverless.contact.ydb_full_endpoint
   primary_key       = ["id"]
   dynamic "column" {
-    for_each = { id = "Utf8", received_at = "Uint64", message = "Utf8", contacts = "Utf8" }
+    for_each = { id = "Utf8", received_at = "Uint64", message = "Utf8", contacts = "Utf8", tg_status = "Uint32" }
     content {
       name     = column.key
       type     = column.value
@@ -84,15 +84,16 @@ resource "yandex_function" "contact" {
   runtime            = "python312"
   entrypoint         = "index.handler"
   memory             = 256
-  execution_timeout  = 10
+  execution_timeout  = 25
   service_account_id = yandex_iam_service_account.function.id
   user_hash          = data.archive_file.function.output_base64sha256
   content { zip_filename = data.archive_file.function.output_path }
   environment = {
-    YDB_ENDPOINT    = "grpcs://${yandex_ydb_database_serverless.contact.ydb_api_endpoint}"
-    YDB_DATABASE    = yandex_ydb_database_serverless.contact.database_path
-    ALLOWED_ORIGINS = join(",", var.allowed_origins)
-    IP_HASH_SECRET  = random_password.ip_hash.result
+    YDB_ENDPOINT          = "grpcs://${yandex_ydb_database_serverless.contact.ydb_api_endpoint}"
+    YDB_DATABASE          = yandex_ydb_database_serverless.contact.database_path
+    ALLOWED_ORIGINS       = join(",", var.allowed_origins)
+    IP_HASH_SECRET        = random_password.ip_hash.result
+    TELEGRAM_FUNCTION_URL = "https://functions.yandexcloud.net/${yandex_function.telegram.id}"
   }
   depends_on = [yandex_ydb_table.submissions, yandex_ydb_table.rate_limits, yandex_ydb_database_iam_binding.writer]
 }

@@ -48,3 +48,32 @@ npm run deploy           # initialize, validate, show plan and apply after confi
 ```
 
 For unattended deployment use `npm run deploy -- --auto-approve`. The command prints the API URL after applying; set it as `VITE_CONTACT_API_URL` for the separate Pages build. Environment variables `YC_CLOUD_ID`, `YC_FOLDER_ID`, and `YC_SERVICE_ACCOUNT_KEY_FILE` override local configuration (`TF_VAR_cloud_id`/`TF_VAR_folder_id` take precedence over the YC IDs). Terraform must be installed and the service account must have deployment permissions. See [deployment details](docs/contact-api.md).
+
+## Telegram test function
+
+`npm run deploy` also deploys a public Python function and prints `telegram_function_url`.
+Set `BOT_TOKEN` and `ADMIN_CHAT_ID` in the deployment environment, or add string fields
+`bot_token` and `admin_chat_id` to ignored `infra/deploy.local.json`.
+`TF_VAR_bot_token` and `TF_VAR_admin_chat_id` take precedence.
+The token is marked sensitive in Terraform, but is still stored in local Terraform state;
+keep state private.
+
+Open the printed URL to send a default greeting, or append `?text=Hello` to send custom text.
+The recipient must first start the bot. Every GET sends a new message; anyone with the
+public URL can trigger it. The function is a standalone test endpoint, not a Telegram webhook
+or an automatic notification from the contact form. It has no database permissions.
+Source: `backend/telegram_function.py`; infrastructure: `infra/telegram.tf`.
+
+### Telegram function version
+
+After `npm run deploy`, open the printed Telegram URL with `?version` (or
+`?version=1`). It returns `{"service":"telegram-function","version":"1.0.2"}`
+without requiring bot credentials or sending a message. Responses disable caching.
+The handler version is defined by `FUNCTION_VERSION` in `backend/telegram_function.py`
+and is independent of the frontend and AWS proxy versions.
+
+Telegram handler 1.0.2 sends requests through the AWS reverse proxy at
+`https://jkvsndafl2.execute-api.us-east-1.amazonaws.com` with `destination=telegram`.
+It no longer contacts Telegram directly. Network diagnostics report the AWS host
+and identify Telegram separately as the upstream. Redeploy with `npm run deploy`;
+the Terraform archive hash automatically picks up the handler change.

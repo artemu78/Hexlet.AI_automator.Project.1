@@ -7,6 +7,11 @@ import json
 import os
 import time
 import uuid
+from urllib.parse import urlencode
+from urllib.request import urlopen
+
+TG_SENT = 1
+TG_DELIVERED = 2
 
 _pool = None
 
@@ -65,7 +70,7 @@ def save(identifier, message, contacts, ip_key):
         with session.transaction(ydb.SerializableReadWrite()) as tx:
             lookup = session.prepare('''
                 DECLARE $id AS Utf8; DECLARE $key AS Utf8;
-                SELECT message, contacts FROM submissions WHERE id = $id;
+                SELECT message, contacts, tg_status FROM submissions WHERE id = $id;
                 SELECT recent FROM rate_limits WHERE ip_key = $key;
             ''')
             result = tx.execute(lookup, {'$id': identifier, '$key': ip_key})
@@ -73,22 +78,47 @@ def save(identifier, message, contacts, ip_key):
             recent = json.loads(result[1].rows[0]['recent']) if result[1].rows else []
             if not decide(existing, recent, message, contacts, now):
                 tx.commit()
-                return
+                return existing['tg_status']
             recent = [stamp for stamp in recent if stamp > now - 600] + [now]
             insert = session.prepare('''
                 DECLARE $id AS Utf8; DECLARE $message AS Utf8;
                 DECLARE $contacts AS Utf8; DECLARE $now AS Uint64;
                 DECLARE $key AS Utf8; DECLARE $recent AS Utf8;
-                UPSERT INTO submissions (id, received_at, message, contacts)
-                VALUES ($id, $now, $message, $contacts);
+                DECLARE $tg_status AS Uint32;
+                UPSERT INTO submissions (id, received_at, message, contacts, tg_status)
+                VALUES ($id, $now, $message, $contacts, $tg_status);
                 UPSERT INTO rate_limits (ip_key, recent, updated_at)
                 VALUES ($key, $recent, $now);
             ''')
             tx.execute(insert, {'$id': identifier, '$message': message,
                                '$contacts': contacts, '$now': now,
-                               '$key': ip_key, '$recent': json.dumps(recent)}, commit_tx=True)
+                               '$key': ip_key, '$recent': json.dumps(recent),
+                               '$tg_status': TG_SENT}, commit_tx=True)
+            return TG_SENT
+
+    return get_pool().retry_operation_sync(operation)
+
+
+def mark_delivered(identifier):
+    import ydb
+
+    def operation(session):
+        query = session.prepare('''
+            DECLARE $id AS Utf8; DECLARE $status AS Uint32;
+            UPDATE submissions SET tg_status = $status WHERE id = $id;
+        ''')
+        session.transaction(ydb.SerializableReadWrite()).execute(
+            query, {'$id': identifier, '$status': TG_DELIVERED}, commit_tx=True)
 
     get_pool().retry_operation_sync(operation)
+
+
+def send_telegram(message, contacts):
+    text = f"Новая заявка\nСообщение: {message}\nКонтакты: {contacts}"
+    url = os.environ['TELEGRAM_FUNCTION_URL'] + '?' + urlencode({'text': text})
+    with urlopen(url, timeout=12) as result:
+        if not json.load(result).get('ok'):
+            raise RuntimeError('Telegram delivery not confirmed')
 
 
 def handler(event, context):
@@ -129,7 +159,10 @@ def handler(event, context):
         except ValueError:
             raise Rejected(400, 'missing_source_ip') from None
         key = hmac.new(os.environ['IP_HASH_SECRET'].encode(), source.encode(), hashlib.sha256).hexdigest()
-        save(identifier, message, contacts, key)
+        status = save(identifier, message, contacts, key)
+        if status != TG_DELIVERED:
+            send_telegram(message, contacts)
+            mark_delivered(identifier)
         return response(200, {'status': 'saved', 'id': identifier})
     except Rejected as error:
         return response(error.status, {'error': error.code})

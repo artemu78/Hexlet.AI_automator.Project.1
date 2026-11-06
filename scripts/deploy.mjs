@@ -24,6 +24,11 @@ async function main() {
   if (!cloud || !folder || !key) {
     throw new Error('Укажите cloud_id, folder_id и service_account_key_file в infra/deploy.local.json (образец: infra/deploy.example.json) или задайте YC_CLOUD_ID, YC_FOLDER_ID, YC_SERVICE_ACCOUNT_KEY_FILE.');
   }
+  const botToken = process.env.TF_VAR_bot_token || process.env.BOT_TOKEN || config.bot_token;
+  const adminChatId = process.env.TF_VAR_admin_chat_id || process.env.ADMIN_CHAT_ID || config.admin_chat_id;
+  if (typeof botToken !== 'string' || !botToken.trim() || typeof adminChatId !== 'string' || !adminChatId.trim()) {
+    throw new Error('Укажите BOT_TOKEN и ADMIN_CHAT_ID в окружении или bot_token и admin_chat_id (строки) в infra/deploy.local.json.');
+  }
   const keyPath = isAbsolute(key) ? key : resolve(root, key);
   try {
     await access(keyPath, constants.R_OK);
@@ -37,6 +42,8 @@ async function main() {
     YC_SERVICE_ACCOUNT_KEY_FILE: keyPath,
     TF_VAR_cloud_id: cloud,
     TF_VAR_folder_id: folder,
+    TF_VAR_bot_token: botToken,
+    TF_VAR_admin_chat_id: adminChatId,
   };
   // The provider accepts only one authentication method. Use the requested key.
   delete env.YC_TOKEN;
@@ -58,6 +65,8 @@ async function main() {
     terraform('apply', ...(args.includes('--auto-approve') ? ['-auto-approve', '-input=false'] : []));
     console.log('\nПубличный URL для VITE_CONTACT_API_URL:');
     terraform('output', '-raw', 'contact_api_url');
+    console.log('\nПубличный URL Telegram-функции (GET, параметр ?text=Hello):');
+    terraform('output', '-raw', 'telegram_function_url');
     console.log();
   }
 }

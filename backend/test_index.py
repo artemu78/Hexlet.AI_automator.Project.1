@@ -12,6 +12,12 @@ class HandlerTests(unittest.TestCase):
         self.env = patch.dict(os.environ, {'ALLOWED_ORIGINS': 'https://example.com', 'IP_HASH_SECRET': 'test-secret'})
         self.env.start()
         self.addCleanup(self.env.stop)
+        self.telegram = patch.object(api, 'send_telegram')
+        self.telegram.start()
+        self.addCleanup(self.telegram.stop)
+        self.delivered = patch.object(api, 'mark_delivered')
+        self.delivered.start()
+        self.addCleanup(self.delivered.stop)
         self.data = {'id': str(uuid.uuid4()), 'message': ' hello ', 'contacts': ' @test '}
 
     def request(self, **changes):
@@ -105,7 +111,7 @@ class TransactionTests(unittest.TestCase):
             self.assertTrue(tx.execute.call_args.kwargs['commit_tx'])
             self.assertEqual(tx.execute.call_args.args[1]['$key'], 'hash')
             tx.reset_mock()
-            tx.execute.side_effect = [[SimpleNamespace(rows=[{'message': 'message', 'contacts': 'contacts'}]),
+            tx.execute.side_effect = [[SimpleNamespace(rows=[{'message': 'message', 'contacts': 'contacts', 'tg_status': api.TG_DELIVERED}]),
                                        SimpleNamespace(rows=[{'recent': '[999,999,999,999,999]'}])]]
             api.save('id', 'message', 'contacts', 'hash')
             self.assertEqual(tx.execute.call_count, 1)

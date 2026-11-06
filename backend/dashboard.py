@@ -102,7 +102,9 @@ def build(days, failed=''):
             else:
                 result['metrics']['visits'] = metrica_visits(first, last)
             result['sources'][name] = {'status': 'educational' if name == 'sales' else 'real', 'label': label}
-        except Exception:
+        except Exception as error:
+            from error_log import log_error
+            log_error('dashboard.' + name, error)
             result['sources'][name] = {'status': 'unavailable', 'label': label}
     return result
 

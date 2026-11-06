@@ -107,6 +107,10 @@ data "archive_file" "function" {
     content  = file("${path.module}/../backend/dashboard.py")
     filename = "dashboard.py"
   }
+  source {
+    content  = file("${path.module}/../backend/error_log.py")
+    filename = "error_log.py"
+  }
   output_path = "${path.module}/function.zip"
 }
 resource "yandex_function" "contact" {
@@ -125,7 +129,7 @@ resource "yandex_function" "contact" {
     IP_HASH_SECRET        = random_password.ip_hash.result
     TELEGRAM_FUNCTION_URL = "https://functions.yandexcloud.net/${yandex_function.telegram.id}"
   }
-  depends_on = [yandex_ydb_table.submissions, yandex_ydb_table.rate_limits, yandex_ydb_database_iam_binding.writer]
+  depends_on = [yandex_ydb_table.submissions, yandex_ydb_table.rate_limits, yandex_ydb_table.error_logs, yandex_ydb_database_iam_binding.writer]
 }
 resource "yandex_function_iam_binding" "invoke" {
   function_id = yandex_function.contact.id
@@ -187,7 +191,7 @@ resource "yandex_function" "dashboard" {
     METRICA_COUNTER_ID           = var.metrica_counter_id
     DASHBOARD_ALLOW_FAILURE_DEMO = "1"
   }
-  depends_on = [yandex_ydb_table.demo_sales, yandex_ydb_database_iam_binding.writer]
+  depends_on = [yandex_ydb_table.demo_sales, yandex_ydb_table.error_logs, yandex_ydb_database_iam_binding.writer]
 }
 resource "yandex_function_iam_binding" "dashboard_invoke" {
   function_id = yandex_function.dashboard.id

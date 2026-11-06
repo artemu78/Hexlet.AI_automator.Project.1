@@ -168,5 +168,7 @@ def handler(event, context):
         return response(error.status, {'error': error.code})
     except (ValueError, UnicodeError):
         return response(400, {'error': 'invalid_input'})
-    except Exception:
+    except Exception as error:
+        from error_log import log_error
+        log_error('contact.handler', error, locals().get('identifier'))
         return response(503, {'error': 'unavailable'})
